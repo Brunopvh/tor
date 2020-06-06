@@ -24,6 +24,7 @@ __version__ = '2020-06-06'
 
 
 import sys
+import os
 import tempfile
 import tarfile
 import shutil
@@ -32,18 +33,7 @@ import urllib.request
 from subprocess import getstatusoutput
 from platform import system as sys_kernel
 from pathlib import Path
-from os import (
-	system, 
-	makedirs, 
-	path, 
-	geteuid, 
-	getcwd,
-	chdir,
-	chmod,
-	remove,
-	listdir,
-	)
-
+	
 if sys_kernel() == 'Linux':
 	CRed='\033[0;31m'
 	CGreen='\033[0;32m'
@@ -83,15 +73,16 @@ if (sys_kernel() != 'Linux') and (sys_kernel() != 'Windows'):
 	sys.exit('1')
 
 # root
-if geteuid() == int('0'):
-	red('Usuário não pode ser o root.')
-	sys.exit('1')
+if sys_kernel() != 'Windows':
+	if os.geteuid() == int('0'):
+		red('Usuário não pode ser o root.')
+		sys.exit('1')
 
-dir_root = path.dirname(path.realpath(__file__)) # Endereço deste script no disco.
-dir_run = getcwd()                               # Diretório onde o terminal está aberto.
+dir_root = os.path.dirname(os.path.realpath(__file__)) # Endereço deste script no disco.
+dir_run = os.getcwd()                               # Diretório onde o terminal está aberto.
 
 # Inserir o diretório do script no PATH do python - print(sys.path)                          
-# sys.path.insert(0, dir_root) 
+# sys.os.path.insert(0, dir_root) 
 
 # tempFile = tempfile.NamedTemporaryFile(delete=False)
 # print(f.name)
@@ -117,8 +108,8 @@ tor_user_dirs = {
 
 for X in tor_user_dirs:
 	dirx = tor_user_dirs[X]
-	if path.isdir(dirx) == False:
-		makedirs(dirx)
+	if os.path.isdir(dirx) == False:
+		os.makedirs(dirx)
 	
 #-------------------------------------------------------------#
 # URL = domain/version/name
@@ -154,18 +145,18 @@ class SetDataTor:
 		'''
 		if sys_kernel() == 'Linux':
 			dirCache = (f'{DirHomeUser}/.cache/download')
-		elif sys_kernel == 'Windows':
-			dirCache = (f'{DirHomeUser}.\\download')
+		elif sys_kernel() == 'Windows':
+			dirCache = ('{}\\download'.format(DirTempUser))
 
-		if path.isdir(dirCache) == False:
-			makedirs(dirCache)
+		if os.path.isdir(dirCache) == False:
+			os.makedirs(dirCache)
 
 		return dirCache
 
 	def set_filename_linux(self):
 		for i in self.get_html_filter(): 
 			if '.tar.xz' in i[-8:]:
-				torFilename_Linux = path.basename(i)
+				torFilename_Linux = os.path.basename(i)
 				break
 
 		return torFilename_Linux
@@ -185,7 +176,7 @@ class SetDataTor:
 	def set_filename_windows(self):
 		for i in self.get_html_filter(): 
 			if '.exe' in i[-5:]:
-				torFilename_Windows = path.basename(i)
+				torFilename_Windows = os.path.basename(i)
 				break
 
 		return torFilename_Windows
@@ -206,8 +197,8 @@ class ConfigTor:
 	elif sys_kernel() == 'Windows':
 		url = SetDataTor().set_windows_url()
 		file = SetDataTor().set_filename_windows()
-		dirCache = SetDataTor.set_cache_dir()    # Pasta de download
-		file = (f'{dirCache}/{file}')            # Path completo no disco.
+		dirCache = SetDataTor().set_cache_dir()    # Pasta de download
+		file = (f'{dirCache}\\{file}')            # Path completo no disco.
 		
 	def __init__(self):
 		pass
@@ -234,7 +225,7 @@ class ConfigTor:
 		'''
 		import wget
 
-		if path.isfile(self.file):
+		if os.path.isfile(self.file):
 			yellow(f'Arquivo encontrado: {self.file}')
 			return
 
@@ -246,34 +237,34 @@ class ConfigTor:
 		except:
 			print('\n')
 			red ('Falha no download')
-			if path.isfile(self.file):
-				remove(self.file)
+			if os.path.isfile(self.file):
+				os.remove(self.file)
 
 	def unpack_file(self):
 		# https://docs.python.org/3.3/library/tarfile.html
 		yellow(f'Descomprimindo: {self.file}')
 		yellow(f'Destino: {DirUnpackTor}')
 
-		chdir(DirUnpackTor)
+		os.chdir(DirUnpackTor)
 		tar = tarfile.open(self.file)
 		tar.extractall()
 		tar.close()
 
 	def linux(self):
 		dir_temp_tor = (f'{DirUnpackTor}/tor-browser_en-US') # Old dir
-		list_files = listdir(dir_temp_tor)
+		list_files = os.listdir(dir_temp_tor)
 
-		if path.isdir(dirBinTor) == False:
+		if os.path.isdir(dirBinTor) == False:
 			yellow(f'Criando: {dirBinTor}')
-			makedirs(dirBinTor)
+			os.makedirs(dirBinTor)
 
-		chdir(dir_temp_tor)
+		os.chdir(dir_temp_tor)
 
 		# Mover arquivos descompactados para o diretório de instalação.
 		for X in range(0, len(list_files)):
 			OldFile = list_files[X]
 			NewFile = (f'{dirBinTor}/{list_files[X]}')
-			if (path.isdir(NewFile)) or (path.isfile(NewFile)):
+			if (os.path.isdir(NewFile)) or (os.path.isfile(NewFile)):
 				yellow(f'Encontrado: {NewFile}')
 			else:
 				yellow(f'Movendo: {OldFile} => {NewFile}')
@@ -289,31 +280,32 @@ class ConfigTor:
 			f.write('{}/{}\n'.format(dirBinTor, 'start-tor-browser.desktop "$@"'))
 
 		yellow(f'Executando: chdir {dirBinTor}')
-		chdir(dirBinTor)
-		chmod('start-tor-browser.desktop', 0o755)
-		chmod(linkExecutableTor, 0o755)
+		os.chdir(dirBinTor)
+		os.chmod('start-tor-browser.desktop', 0o755)
+		os.chmod(linkExecutableTor, 0o755)
 		yellow('./{} --register-app'.format('start-tor-browser.desktop'))
-		system('./{} --register-app'.format('start-tor-browser.desktop'))
+		os.system('./{} --register-app'.format('start-tor-browser.desktop'))
 		yellow('Use: torbrowser --help - para mais informações')
-		system('torbrowser')
+		os.system('torbrowser')
 
 	def remove_torlinux(self):
 		'''
 		Desinstalar tor no Linux
 		'''
-		if path.isfile(fileDesktop) == True:
+		if os.path.isfile(fileDesktop) == True:
 			yellow(f'Removendo: {fileDesktop}')
-			remove(fileDesktop)
+			os.remove(fileDesktop)
 
-		if path.isfile(linkExecutableTor):
+		if os.path.isfile(linkExecutableTor):
 			yellow(f'Removendo: {linkExecutableTor}')
-			remove(linkExecutableTor)
+			os.remove(linkExecutableTor)
 
-	def windows():
+	def windows(self):
 		'''
 		Executa o instalador .exe do windows
 		'''
-		system(f'cmd.exe {self.file}')
+		os.chdir(f"{self.dirCache}")
+		os.system(self.file) # Executar o instalador
 
 	def remove_torwindows(self):
 		pass
