@@ -15,13 +15,15 @@
 #--------------------| REFERÊNCIAS |-----------------------------------#
 # https://www.it-swarm.dev/pt/python/argparse-module-como-adicionar-opcao-sem-nenhum-argumento/971423742/
 # https://docs.python.org/dev/library/argparse.html#action
-#
+# https://stackoverflow.com/questions/3223604/how-to-create-a-temporary-directory-and-get-the-path-file-name-in-python
+# https://docs.python.org/3.4/library/glob.html
 #
 
 
 __version__ = '2020-06-05'
 
 import sys
+import tempfile
 import tarfile
 import shutil
 import argparse
@@ -89,9 +91,12 @@ dir_run = getcwd()                               # Diretório onde o terminal es
 # Inserir o diretório do script no PATH do python - print(sys.path)                          
 # sys.path.insert(0, dir_root) 
 
+# tempFile = tempfile.NamedTemporaryFile(delete=False)
+# print(f.name)
+
 # Criação é declaração de arquivos e diretórios.
-DirHomeUser = Path.home()                      # HOME do usuário.
-DirTempUser = (f'{DirHomeUser}/tor_temp')      # Diretório temporário para download e descompressão de arquivos. 
+DirHomeUser = Path.home()                      # HOME do usuário. 
+DirTempUser = tempfile.mkdtemp()               # Diretório temporário para download e descompressão de arquivos.
 DirDownloadTor = (f'{DirTempUser}/download')   # Diretório de download.
 DirUnpackTor = (f'{DirTempUser}/unpack_tor')   # Descompressão do arquivo .tar.xz
 DirUserBin = (f'{DirHomeUser}/.local/bin')     # Diretório para binários do usuário no Linux.
@@ -113,7 +118,6 @@ tor_user_dirs = {
 for X in tor_user_dirs:
 	dirx = tor_user_dirs[X]
 	if path.isdir(dirx) == False:
-		white(f'Criando o diretório: {dirx}')
 		makedirs(dirx)
 	
 #-------------------------------------------------------------#
@@ -192,8 +196,29 @@ class ConfigTor:
 	def __init__(self):
 		pass
 
+	def bar_custom(self, current, total, width=80):
+		# print("\033[K", frase.strip(), end="\r")
+		# https://pt.stackoverflow.com/questions/207887/como-imprimir-texto-na-mesma-linha-em-python
+		# print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
+		#
+		current = current / 1048576        # Converter bytes para MB
+		total = total / 1048576
+		progress = (current / total) * 100 # Percentual
+
+		if progress == '99':
+			print('[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total))
+
+		print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
+
+
 	def download_file(self):
+		'''
+		wget.download(url, out=None, bar=<function bar_adaptive at 0x7f7fdfed9d30>)
+		wget.download(url, out=None, bar=bar_adaptive(current, total, width=80))
+		'''
+
 		import wget
+
 
 		if path.isfile(self.file):
 			yellow(f'Arquivo encontrado: {self.file}')
@@ -202,8 +227,8 @@ class ConfigTor:
 		yellow(f'Baixando: {self.url}')
 		yellow(f'Destino: {self.file}')
 		try:
-			wget.download(self.url, self.file)
-			print(' OK')
+			wget.download(self.url, self.file, bar=self.bar_custom)
+			print('OK ')
 		except:
 			print('\n')
 			red ('Falha no download')
