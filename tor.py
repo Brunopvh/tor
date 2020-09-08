@@ -114,23 +114,25 @@ for X in tor_user_dirs:
 #-------------------------------------------------------------#
 # URL = domain/version/name
 #-------------------------------------------------------------#
-yellow('Aguarde...')
 tor_download_page='https://www.torproject.org/download/'
 tor_domain_server='https://dist.torproject.org/torbrowser'
-html_page_tor = str(urllib.request.urlopen(tor_download_page).read())
-
 
 class SetDataTor:
-	html_default = html_page_tor.split()
-
+	
 	def __init__(self, os_kernel=sys_kernel()):
 		self.os_kernel = os_kernel
 
+	def get_html_default(self):
+		html_page_tor = str(urllib.request.urlopen(tor_download_page).read())
+		html_default = html_page_tor.split()
+		return html_default
+
 	def get_html_filter(self):
-		# Filtrar as ocorrencias ".dmg", ".tar", ".exe" e guardar em uma lista.
+		html_default = self.get_html_default()
 		html_filter = []
-		for X in range(0, len(self.html_default)):
-			line = self.html_default[X].replace('\n', '')
+
+		for X in range(0, len(html_default)):
+			line = html_default[X].replace('\n', '')
 			if ('.dmg' in line) or ('.tar' in line) or ('.exe' in line):
 				position_left = int(line.find('"') + 1) 
 				position_right = int(line.rfind('"'))
@@ -187,8 +189,10 @@ class SetDataTor:
 
 
 class ConfigTor:
-	# Setar o URL de acordo com o sistema e setar o caminho completo
-	# de onde o arquivo deve ser baixado diretório+nome_do_arquivo.exe/.tar.xz
+	'''
+	Setar o URL de acordo com o sistema e setar o caminho completo
+	de onde o arquivo deve ser baixado diretório+nome_do_arquivo.exe/.tar.xz
+	'''
 	if sys_kernel() == 'Linux':
 		url = SetDataTor().set_linux_url()
 		file = SetDataTor().set_filename_linux()  # Nome do arquivo.
@@ -197,22 +201,21 @@ class ConfigTor:
 	elif sys_kernel() == 'Windows':
 		url = SetDataTor().set_windows_url()
 		file = SetDataTor().set_filename_windows()
-		dirCache = SetDataTor().set_cache_dir()    # Pasta de download
-		file = (f'{dirCache}\\{file}')            # Path completo no disco.
+		dirCache = SetDataTor().set_cache_dir()    
+		file = (f'{dirCache}\\{file}')             
 		
 	def __init__(self):
 		pass
 
 	def bar_custom(self, current, total, width=80):
-		# print("\033[K", frase.strip(), end="\r")
 		# https://pt.stackoverflow.com/questions/207887/como-imprimir-texto-na-mesma-linha-em-python
 		# print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
 		#
 		current = current / 1048576        # Converter bytes para MB
-		total = total / 1048576
+		total = total / 1048576            # Converter bytes para MB
 		progress = (current / total) * 100 # Percentual
 
-		if progress == '99':
+		if progress == '100':
 			print('[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total))
 
 		print('\033[K[>] Progresso: %d%% [%d / %d]MB ' % (progress, current, total), end='\r')
@@ -236,7 +239,7 @@ class ConfigTor:
 			print('OK ')
 		except:
 			print('\n')
-			red ('Falha no download')
+			red('Falha no download')
 			if os.path.isfile(self.file):
 				os.remove(self.file)
 
@@ -251,7 +254,10 @@ class ConfigTor:
 		tar.close()
 
 	def linux(self):
-		dir_temp_tor = (f'{DirUnpackTor}/tor-browser_en-US') # Old dir
+		'''
+		Instalar o tor no linux.
+		'''
+		dir_temp_tor = (f'{DirUnpackTor}/tor-browser_en-US')
 		list_files = os.listdir(dir_temp_tor)
 
 		if os.path.isdir(dirBinTor) == False:
@@ -272,7 +278,6 @@ class ConfigTor:
 
 		shutil. rmtree(DirUnpackTor)
 
-		# Criar atalho para execução.
 		yellow(f'Criando atalho para execução em: {linkExecutableTor}')
 		with open(linkExecutableTor, 'w') as f:
 			f.write('#!/bin/sh\n')
@@ -353,6 +358,8 @@ if args.install:
 	ConfigTor().install_tor()
 elif args.remove:
 	ConfigTor().remove_tor()
+else:
+	print(f'Use: {os.path.basename(os.path.realpath(__file__))} --install|--remove|--version|--help')
 
 
 
